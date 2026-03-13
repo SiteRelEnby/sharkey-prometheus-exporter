@@ -1,0 +1,9 @@
+:3000 {
+	handle /metrics {
+		root * /srv
+		rewrite * /sharkey.prom
+		header Content-Type "text/plain; version=0.0.4; charset=utf-8"
+		file_server
+	}
+	respond 404
+}

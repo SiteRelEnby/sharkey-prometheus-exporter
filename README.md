@@ -91,13 +91,10 @@ echo '* * * * * /usr/local/bin/sharkey-exporter.sh --output /var/lib/prometheus-
 sharkey-exporter.sh --create-token
 
 # Then use the token (any of these work — in priority order):
-sharkey-exporter.sh --token-file /etc/sharkey-exporter/token --output /var/lib/prometheus-textfile/sharkey.prom
 sharkey-exporter.sh --token YOUR_API_TOKEN --output /var/lib/prometheus-textfile/sharkey.prom
-
-# Override the domain label (default: auto-detected from instance metadata):
-sharkey-exporter.sh --domain my-instance.example --output /var/lib/prometheus-textfile/sharkey.prom
-SHARKEY_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
-SHARKEY_TOKEN_FILE=/etc/sharkey-exporter/token sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
+SHARKEYEX_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
+SHARKEYEX_TOKEN_FILE=/etc/sharkey-exporter/token sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
+SHARKEYEX_INSTANCE=https://my-instance.example SHARKEYEX_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh
 ```
 
 ## Prometheus / Grafana Alloy Configuration

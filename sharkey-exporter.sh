@@ -10,8 +10,8 @@
 #                       [--token-file <path>] [--charts-notes] [--charts-users]
 #                       [--charts-drive] [--extended-queue-stats] [--delayed-hosts]
 #
-# Token resolution order: --token flag > --token-file flag > SHARKEY_TOKEN env var
-#                         > SHARKEY_TOKEN_FILE env var
+# Token resolution order: --token flag > --token-file flag > SHARKEYEX_TOKEN env var
+#                         > SHARKEYEX_TOKEN_FILE env var
 #
 # Without a token, only public API metrics are collected.
 # With a token, admin metrics (queues, server info, DB stats) are also collected.
@@ -24,11 +24,12 @@
 # possible even if individual API calls fail.
 set -uo pipefail
 
-INSTANCE="http://127.0.0.1:3000"
-OUTPUT="/var/lib/prometheus-textfile/sharkey.prom"
-TOKEN=""
-TOKEN_FILE=""
-DOMAIN=""
+INSTANCE="${SHARKEYEX_INSTANCE:-http://127.0.0.1:3000}"
+INSTANCE="${INSTANCE%/}"
+OUTPUT="${SHARKEYEX_OUTPUT:-/var/lib/prometheus-textfile/sharkey.prom}"
+TOKEN="${SHARKEYEX_TOKEN:-}"
+TOKEN_FILE="${SHARKEYEX_TOKEN_FILE:-}"
+DOMAIN="${SHARKEYEX_DOMAIN:-}"
 OPT_CREATE_TOKEN=false
 OPT_CHARTS_NOTES=false
 OPT_CHARTS_USERS=false
@@ -82,10 +83,13 @@ Extended metrics (opt-in):
                            (requires token)
 
 Environment variables:
-  SHARKEY_TOKEN        API token (used if --token is not set)
-  SHARKEY_TOKEN_FILE   Token file path (used if --token-file is not set)
+  SHARKEYEX_INSTANCE    Instance URL (default: http://127.0.0.1:3000)
+  SHARKEYEX_OUTPUT      Output .prom file path (default: /var/lib/prometheus-textfile/sharkey.prom)
+  SHARKEYEX_TOKEN       API token (used if --token is not set)
+  SHARKEYEX_TOKEN_FILE  Token file path (used if --token-file is not set)
+  SHARKEYEX_DOMAIN      Domain label override (used if --domain is not set)
 
-Token priority: --token > --token-file > SHARKEY_TOKEN > SHARKEY_TOKEN_FILE
+Token priority: --token > --token-file > SHARKEYEX_TOKEN > SHARKEYEX_TOKEN_FILE
 USAGE
             exit 0
             ;;
@@ -106,27 +110,13 @@ if [[ -z "$TOKEN" && -n "$TOKEN_FILE" ]]; then
     TOKEN="$(<"$TOKEN_FILE")"
 fi
 
-if [[ -z "$TOKEN" && -n "${SHARKEY_TOKEN:-}" ]]; then
-    TOKEN="$SHARKEY_TOKEN"
-fi
-
-if [[ -z "$TOKEN" && -n "${SHARKEY_TOKEN_FILE:-}" ]]; then
-    if [[ ! -r "$SHARKEY_TOKEN_FILE" ]]; then
-        echo "Error: cannot read token file '$SHARKEY_TOKEN_FILE'" >&2
-        exit 1
-    fi
-    TOKEN="$(<"$SHARKEY_TOKEN_FILE")"
-fi
-
 TOKEN="${TOKEN%%$'\n'}"  # strip trailing newline from file reads
 TOKEN="${TOKEN## }"     # strip leading/trailing whitespace
 TOKEN="${TOKEN%% }"
 
 # Warn if a token source was specified but resolved to empty
-if [[ -z "$TOKEN" ]] && [[ -n "$TOKEN_FILE" || -n "${SHARKEY_TOKEN_FILE:-}" ]]; then
+if [[ -z "$TOKEN" && -n "$TOKEN_FILE" ]]; then
     echo "Warning: token file exists but is empty — admin metrics will be skipped" >&2
-elif [[ -z "$TOKEN" ]] && [[ -n "${SHARKEY_TOKEN:-}" ]]; then
-    echo "Warning: SHARKEY_TOKEN is set but empty — admin metrics will be skipped" >&2
 fi
 
 # ---- helpers ----

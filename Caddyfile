@@ -1,4 +1,4 @@
-:3000 {
+:10054 {
 	handle /metrics {
 		root * /srv
 		rewrite * /sharkey.prom

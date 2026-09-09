@@ -2,7 +2,12 @@
 
 A lightweight Prometheus metrics exporter for [Sharkey](https://joinsharkey.org/) (Misskey fork) instances.
 
-Polls the Sharkey API and exposes metrics in Prometheus textfile format. Designed for small-to-medium instances — no heavy dependencies, just bash + curl + jq + cron.
+Polls the Sharkey API and exposes metrics in Prometheus textfile format. Designed for small-to-medium instances - no heavy dependencies, just bash + curl + jq + cron.
+
+Two ways to run it:
+
+- **Script**: drop `sharkey-exporter.sh` on the host, run it from cron, and let node_exporter or Grafana Alloy pick up the textfile. See [Quick Start](#quick-start).
+- **Container**: `ghcr.io/siterelenby/sharkey-prometheus-exporter` polls the instance itself and serves `/metrics` on port 10054 as a normal scrape target. Multi-arch, with provenance attestations. See [Docker](#docker).
 
 By default, exports a useful set of metrics that covers most monitoring needs. Optional flags enable additional metrics for larger instances with more monitoring infrastructure.
 
@@ -185,6 +190,10 @@ prometheus.scrape "sharkey_metrics" {
 ## Compatibility
 
 Tested with Sharkey 2025.4.x. Should work with any Misskey-compatible fork that exposes `/api/stats` and the charts API.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

@@ -9,6 +9,7 @@
 #   sharkey-exporter.sh [--instance <url>] [--output <path>] [--token <api-token>]
 #                       [--token-file <path>] [--charts-notes] [--charts-users]
 #                       [--charts-drive] [--extended-queue-stats] [--delayed-hosts]
+#                       [--version]
 #
 # Token resolution order: --token flag > --token-file flag > SHARKEYEX_TOKEN env var
 #                         > SHARKEYEX_TOKEN_FILE env var
@@ -26,6 +27,8 @@
 # Note: set -e is intentionally omitted — we want to collect as many metrics as
 # possible even if individual API calls fail.
 set -uo pipefail
+
+VERSION="0.1.0"
 
 INSTANCE="${SHARKEYEX_INSTANCE:-http://127.0.0.1:3000}"
 INSTANCE="${INSTANCE%/}"
@@ -75,6 +78,7 @@ while [[ $# -gt 0 ]]; do
         --charts-drive)          OPT_CHARTS_DRIVE=true; shift ;;
         --extended-queue-stats)  OPT_EXTENDED_QUEUES=true; shift ;;
         --delayed-hosts)         OPT_DELAYED_HOSTS=true; shift ;;
+        --version)               echo "sharkey-exporter.sh $VERSION"; exit 0 ;;
         -h|--help)
             cat <<'USAGE'
 Usage: sharkey-exporter.sh [OPTIONS]
@@ -87,6 +91,7 @@ Options:
   --domain <name>      Override domain label (default: auto-detected from instance)
   --create-token       Print the minimum permissions needed to create an API
                        token for this exporter, then exit.
+  --version            Print the version and exit
   -h, --help           Show this help
 
 Extended metrics (opt-in):

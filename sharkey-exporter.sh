@@ -113,6 +113,8 @@ Environment variables:
 Token priority: --token > --token-file > SHARKEYEX_TOKEN > SHARKEYEX_TOKEN_FILE
 
 Deprecated (still honoured, with a warning): SHARKEY_TOKEN, SHARKEY_TOKEN_FILE
+
+🔦🐺🪽
 USAGE
             exit 0
             ;;

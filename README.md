@@ -1,5 +1,12 @@
 # sharkey-prometheus-exporter
 
+[![GitHub Release](https://img.shields.io/github/v/release/SiteRelEnby/sharkey-prometheus-exporter?include_prereleases&sort=semver&display_name=release&style=plastic&link=https%3A%2F%2Fgithub.com%2Fsheaf-project%2Fsheaf%2Freleases%2F)](https://github.com/sheaf-project/sheaf/releases)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/SiteRelEnby/sharkey-prometheus-exporter/docker.yml?branch=main&style=plastic&logo=github&label=CI)](https://github.com/sheaf-project/sheaf/actions)
+
+![transrights](https://pride-badges.pony.workers.dev/static/v1?label=trans%20rights&stripeWidth=6&stripeColors=5BCEFA,F5A9B8,FFFFFF,F5A9B8,5BCEFA)
+![enbyware](https://pride-badges.pony.workers.dev/static/v1?label=enbyware&labelColor=%23555&stripeWidth=8&stripeColors=FCF434%2CFFFFFF%2C9C59D1%2C2C2C2C)
+![pluralmade](https://pride-badges.pony.workers.dev/static/v1?label=plural+made&labelColor=%23555&stripeWidth=8&stripeColors=2e0525%2C553578%2C7675c3%2C89c7b0%2Cf4ecbd)
+
 A lightweight Prometheus metrics exporter for [Sharkey](https://joinsharkey.org/) (Misskey fork) instances.
 
 Polls the Sharkey API and exposes metrics in Prometheus textfile format. Designed for small-to-medium instances - no heavy dependencies, just bash + curl + jq + cron.

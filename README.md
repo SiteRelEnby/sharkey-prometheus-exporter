@@ -1,8 +1,20 @@
 # sharkey-prometheus-exporter
 
+[![GitHub Release](https://img.shields.io/github/v/release/SiteRelEnby/sharkey-prometheus-exporter?include_prereleases&sort=semver&display_name=release&style=plastic&link=https%3A%2F%2Fgithub.com%2Fsheaf-project%2Fsheaf%2Freleases%2F)](https://github.com/sheaf-project/sheaf/releases)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/SiteRelEnby/sharkey-prometheus-exporter/docker.yml?branch=main&style=plastic&logo=github&label=CI)](https://github.com/sheaf-project/sheaf/actions)
+
+![transrights](https://pride-badges.pony.workers.dev/static/v1?label=trans%20rights&stripeWidth=6&stripeColors=5BCEFA,F5A9B8,FFFFFF,F5A9B8,5BCEFA)
+![enbyware](https://pride-badges.pony.workers.dev/static/v1?label=enbyware&labelColor=%23555&stripeWidth=8&stripeColors=FCF434%2CFFFFFF%2C9C59D1%2C2C2C2C)
+![pluralmade](https://pride-badges.pony.workers.dev/static/v1?label=plural+made&labelColor=%23555&stripeWidth=8&stripeColors=2e0525%2C553578%2C7675c3%2C89c7b0%2Cf4ecbd)
+
 A lightweight Prometheus metrics exporter for [Sharkey](https://joinsharkey.org/) (Misskey fork) instances.
 
-Polls the Sharkey API and exposes metrics in Prometheus textfile format. Designed for small-to-medium instances — no heavy dependencies, just bash + curl + jq + cron.
+Polls the Sharkey API and exposes metrics in Prometheus textfile format. Designed for small-to-medium instances - no heavy dependencies, just bash + curl + jq + cron.
+
+Two ways to run it:
+
+- **Script**: drop `sharkey-exporter.sh` on the host, run it from cron, and let node_exporter or Grafana Alloy pick up the textfile. See [Quick Start](#quick-start).
+- **Container**: `ghcr.io/siterelenby/sharkey-prometheus-exporter` polls the instance itself and serves `/metrics` on port 10054 as a normal scrape target. Multi-arch, with provenance attestations. See [Docker](#docker).
 
 By default, exports a useful set of metrics that covers most monitoring needs. Optional flags enable additional metrics for larger instances with more monitoring infrastructure.
 
@@ -91,14 +103,54 @@ echo '* * * * * /usr/local/bin/sharkey-exporter.sh --output /var/lib/prometheus-
 sharkey-exporter.sh --create-token
 
 # Then use the token (any of these work — in priority order):
-sharkey-exporter.sh --token-file /etc/sharkey-exporter/token --output /var/lib/prometheus-textfile/sharkey.prom
 sharkey-exporter.sh --token YOUR_API_TOKEN --output /var/lib/prometheus-textfile/sharkey.prom
+sharkey-exporter.sh --token-file /etc/sharkey-exporter/token --output /var/lib/prometheus-textfile/sharkey.prom
+SHARKEYEX_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
+SHARKEYEX_TOKEN_FILE=/etc/sharkey-exporter/token sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
+
+# Every flag has an env var equivalent, so it can run with no arguments at all:
+SHARKEYEX_INSTANCE=https://my-instance.example SHARKEYEX_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh
 
 # Override the domain label (default: auto-detected from instance metadata):
 sharkey-exporter.sh --domain my-instance.example --output /var/lib/prometheus-textfile/sharkey.prom
-SHARKEY_TOKEN=YOUR_API_TOKEN sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
-SHARKEY_TOKEN_FILE=/etc/sharkey-exporter/token sharkey-exporter.sh --output /var/lib/prometheus-textfile/sharkey.prom
 ```
+
+The older unprefixed `SHARKEY_TOKEN` and `SHARKEY_TOKEN_FILE` names still work but print a deprecation warning.
+
+## Docker
+
+A container image is published to GHCR on every release and every push to `main`:
+
+```
+ghcr.io/siterelenby/sharkey-prometheus-exporter
+```
+
+Tags: `latest` (main), `vX.Y.Z` and `X.Y` (releases), `sha-<commit>`. Images are built for `linux/amd64` and `linux/arm64` and carry build provenance attestations, which you can check with `gh attestation verify oci://ghcr.io/siterelenby/sharkey-prometheus-exporter:latest --owner SiteRelEnby`.
+
+The container polls the instance on an interval and serves the result at `/metrics` on port 10054, so Prometheus can scrape it directly with no textfile collector involved:
+
+```bash
+docker run -d --name sharkey-exporter \
+  -e SHARKEYEX_INSTANCE=https://your.instance.tld \
+  -e SHARKEYEX_TOKEN_FILE=/run/secrets/sharkey_token \
+  -v /etc/sharkey-exporter/token:/run/secrets/sharkey_token:ro \
+  -p 10054:10054 \
+  ghcr.io/siterelenby/sharkey-prometheus-exporter:latest
+
+curl http://localhost:10054/metrics
+```
+
+Container arguments are passed straight through to the exporter, so opt-in metrics work as `... ghcr.io/siterelenby/sharkey-prometheus-exporter:latest --charts-notes --charts-users`. `SHARKEYEX_POLLING_INTERVAL` sets the poll interval in seconds (default 60).
+
+```yaml
+# prometheus.yml
+scrape_configs:
+  - job_name: sharkey
+    static_configs:
+      - targets: ['localhost:10054']
+```
+
+Docker packaging was contributed by [Bea](https://github.com/disastercurl) and adopted from [The Argo's fork](https://github.com/ArgoIV/sharkey-prometheus-exporter). Thanks!
 
 ## Prometheus / Grafana Alloy Configuration
 
@@ -138,13 +190,17 @@ prometheus.scrape "sharkey_metrics" {
 
 ## Requirements
 
-- bash, curl, jq
+- bash, curl, jq (or Docker, see above)
 - A Sharkey/Misskey instance
-- Prometheus with textfile collector, or Grafana Alloy
+- Prometheus with textfile collector, or Grafana Alloy (or a plain scrape target when using the container)
 
 ## Compatibility
 
 Tested with Sharkey 2025.4.x. Should work with any Misskey-compatible fork that exposes `/api/stats` and the charts API.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

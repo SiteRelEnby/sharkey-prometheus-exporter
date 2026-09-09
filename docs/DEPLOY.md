@@ -59,6 +59,59 @@ If the exporter runs on a different host, or Sharkey listens on a non-default po
 sharkey-exporter.sh --instance https://your.instance.tld --output /var/lib/prometheus-textfile/sharkey.prom
 ```
 
+## Docker
+
+If you'd rather not install anything on the host, the container image polls the
+instance itself and serves `/metrics` over HTTP on port 10054. No cron and no
+textfile collector needed; point Prometheus or Alloy at it as a normal scrape target.
+
+```bash
+mkdir -p /etc/sharkey-exporter
+echo 'YOUR_TOKEN_HERE' > /etc/sharkey-exporter/token
+chmod 600 /etc/sharkey-exporter/token
+
+docker run -d --name sharkey-exporter --restart unless-stopped \
+  -e SHARKEYEX_INSTANCE=https://your.instance.tld \
+  -e SHARKEYEX_TOKEN_FILE=/run/secrets/sharkey_token \
+  -v /etc/sharkey-exporter/token:/run/secrets/sharkey_token:ro \
+  -p 127.0.0.1:10054:10054 \
+  ghcr.io/siterelenby/sharkey-prometheus-exporter:latest
+```
+
+Or with compose:
+
+```yaml
+services:
+  sharkey-exporter:
+    image: ghcr.io/siterelenby/sharkey-prometheus-exporter:latest
+    restart: unless-stopped
+    environment:
+      SHARKEYEX_INSTANCE: https://your.instance.tld
+      SHARKEYEX_TOKEN_FILE: /run/secrets/sharkey_token
+      SHARKEYEX_POLLING_INTERVAL: "60"
+    secrets:
+      - sharkey_token
+    ports:
+      - "127.0.0.1:10054:10054"
+    # Opt-in metrics go here, they're passed through to the exporter:
+    # command: ["--charts-notes", "--charts-users"]
+
+secrets:
+  sharkey_token:
+    file: /etc/sharkey-exporter/token
+```
+
+Environment variables: `SHARKEYEX_INSTANCE`, `SHARKEYEX_TOKEN`, `SHARKEYEX_TOKEN_FILE`,
+`SHARKEYEX_DOMAIN`, `SHARKEYEX_POLLING_INTERVAL`. Prefer `SHARKEYEX_TOKEN_FILE` with a
+mounted secret over `SHARKEYEX_TOKEN`, since environment variables show up in
+`docker inspect`.
+
+The default `SHARKEYEX_INSTANCE` of `http://127.0.0.1:3000` only reaches Sharkey when
+the container runs with `--network=host`. Otherwise set it to the public URL, or to the
+Sharkey service name if both are on the same compose network.
+
+Pin to a release tag (`vX.Y.Z`) rather than `latest` if you want control over upgrades.
+
 ## Grafana Alloy setup
 
 Add to your Alloy config:

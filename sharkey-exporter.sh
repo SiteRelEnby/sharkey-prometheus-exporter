@@ -13,6 +13,9 @@
 # Token resolution order: --token flag > --token-file flag > SHARKEYEX_TOKEN env var
 #                         > SHARKEYEX_TOKEN_FILE env var
 #
+# The unprefixed SHARKEY_TOKEN / SHARKEY_TOKEN_FILE names are deprecated but
+# still honoured (with a warning) so existing cron setups keep working.
+#
 # Without a token, only public API metrics are collected.
 # With a token, admin metrics (queues, server info, DB stats) are also collected.
 #
@@ -27,9 +30,22 @@ set -uo pipefail
 INSTANCE="${SHARKEYEX_INSTANCE:-http://127.0.0.1:3000}"
 INSTANCE="${INSTANCE%/}"
 OUTPUT="${SHARKEYEX_OUTPUT:-/var/lib/prometheus-textfile/sharkey.prom}"
-TOKEN="${SHARKEYEX_TOKEN:-}"
-TOKEN_FILE="${SHARKEYEX_TOKEN_FILE:-}"
+TOKEN=""
+TOKEN_FILE=""
 DOMAIN="${SHARKEYEX_DOMAIN:-}"
+
+# Deprecated unprefixed env var names: honour them as fallbacks, but nag.
+for old in SHARKEY_TOKEN SHARKEY_TOKEN_FILE; do
+    new="SHARKEYEX_${old#SHARKEY_}"
+    if [[ -n "${!old:-}" ]]; then
+        echo "Warning: $old is deprecated, use $new instead" >&2
+        if [[ -z "${!new:-}" ]]; then
+            declare "$new=${!old}"
+        fi
+    fi
+done
+ENV_TOKEN="${SHARKEYEX_TOKEN:-}"
+ENV_TOKEN_FILE="${SHARKEYEX_TOKEN_FILE:-}"
 OPT_CREATE_TOKEN=false
 OPT_CHARTS_NOTES=false
 OPT_CHARTS_USERS=false
@@ -90,6 +106,8 @@ Environment variables:
   SHARKEYEX_DOMAIN      Domain label override (used if --domain is not set)
 
 Token priority: --token > --token-file > SHARKEYEX_TOKEN > SHARKEYEX_TOKEN_FILE
+
+Deprecated (still honoured, with a warning): SHARKEY_TOKEN, SHARKEY_TOKEN_FILE
 USAGE
             exit 0
             ;;
@@ -102,12 +120,25 @@ USAGE
 done
 
 # ---- token resolution ----
-if [[ -z "$TOKEN" && -n "$TOKEN_FILE" ]]; then
-    if [[ ! -r "$TOKEN_FILE" ]]; then
-        echo "Error: cannot read token file '$TOKEN_FILE'" >&2
+# Flags first, env vars second, so --token-file beats SHARKEYEX_TOKEN as documented.
+read_token_file() {
+    if [[ ! -r "$1" ]]; then
+        echo "Error: cannot read token file '$1'" >&2
         exit 1
     fi
-    TOKEN="$(<"$TOKEN_FILE")"
+    TOKEN="$(<"$1")"
+}
+
+if [[ -z "$TOKEN" && -n "$TOKEN_FILE" ]]; then
+    read_token_file "$TOKEN_FILE"
+fi
+
+if [[ -z "$TOKEN" && -n "$ENV_TOKEN" ]]; then
+    TOKEN="$ENV_TOKEN"
+fi
+
+if [[ -z "$TOKEN" && -n "$ENV_TOKEN_FILE" ]]; then
+    read_token_file "$ENV_TOKEN_FILE"
 fi
 
 TOKEN="${TOKEN%%$'\n'}"  # strip trailing newline from file reads
@@ -115,8 +146,10 @@ TOKEN="${TOKEN## }"     # strip leading/trailing whitespace
 TOKEN="${TOKEN%% }"
 
 # Warn if a token source was specified but resolved to empty
-if [[ -z "$TOKEN" && -n "$TOKEN_FILE" ]]; then
-    echo "Warning: token file exists but is empty — admin metrics will be skipped" >&2
+if [[ -z "$TOKEN" ]] && [[ -n "$TOKEN_FILE" || -n "$ENV_TOKEN_FILE" ]]; then
+    echo "Warning: token file exists but is empty - admin metrics will be skipped" >&2
+elif [[ -z "$TOKEN" ]] && [[ -n "${SHARKEYEX_TOKEN+x}" ]]; then
+    echo "Warning: SHARKEYEX_TOKEN is set but empty - admin metrics will be skipped" >&2
 fi
 
 # ---- helpers ----

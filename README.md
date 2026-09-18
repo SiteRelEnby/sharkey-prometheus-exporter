@@ -161,7 +161,7 @@ Docker packaging was contributed by [Bea](https://github.com/disastercurl) and a
 scrape_configs:
   - job_name: sharkey
     static_configs:
-      - targets: ['localhost:9100']
+      - targets: ['localhost:10054']
     # Assumes node_exporter with --collector.textfile.directory=/var/lib/prometheus-textfile
 ```
 
